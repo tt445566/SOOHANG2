@@ -30,7 +30,11 @@ public class OutLinePing extends JFrame {
 	Object[][] tableData;
 	int threadNum=0;
 	
+
+	
 	public OutLinePing() {
+		
+		
 		
 		tableData = new Object[254][5];
 		
@@ -172,10 +176,12 @@ public class OutLinePing extends JFrame {
 		
 		//status end
 		
-		//tablep
+		//table
 		String[] Tabletitle = new String[] {
-				"IP", "Ping", "Hostname", "TTL", "Port"
+				"IP", "Ping", "TTL", "HostName", "Port"
 		};
+		
+		
 		
 		Object[][] status = initTable();
 		
@@ -195,64 +201,104 @@ public class OutLinePing extends JFrame {
 		JToolBar toolBar2 = new JToolBar();
 		toolBar2.setLayout(new FlowLayout(FlowLayout.LEFT));
 		
+		
 		try {
-		
-		InetAddress localIP = InetAddress.getLocalHost();
-		myIP = localIP.getHostAddress();
-		fixedIP = myIP.substring(0,myIP.lastIndexOf(".")+1);
-		myHostName = localIP.getHostName();
-		
-		JLabel rangeStartLabel = new JLabel("IP Range:");
-		JTextField rangeStartTextField = new JTextField(fixedIP+"1");
-		JLabel rangeEndLabel = new JLabel("        to");
-		JTextField rangeEndTextField = new JTextField(fixedIP+"254");
-		
-		rangeStartLabel.setFont(font);
-		rangeStartLabel.setPreferredSize(new Dimension(90, 30));
-		rangeEndLabel.setFont(font);
-		rangeEndLabel.setPreferredSize(new Dimension(90, 30));
-		
-		toolBar1.add(rangeStartLabel);
-		toolBar1.add(rangeStartTextField);
-		toolBar1.add(rangeEndLabel);
-		toolBar1.add(rangeEndTextField);
-		
-		JLabel hostNameLabel = new JLabel("Hostname:");
-		JTextField hostNameTextField = new JTextField(myHostName);
-		JButton upButton = new JButton("IP ¡è");
-		JComboBox optionComboBox = new JComboBox();
-		optionComboBox.addItem("/24");
-		optionComboBox.addItem("/26");
-		
-		JButton startButton = new JButton("¢º Start");
-		
-		hostNameLabel.setFont(font);
-		hostNameTextField.setPreferredSize(new Dimension(90, 30));
-		upButton.setPreferredSize(new Dimension(50, 30));
-		optionComboBox.setPreferredSize(new Dimension(90, 30));
-		startButton.setPreferredSize(new Dimension(90, 30));
-		
-		toolBar2.add(hostNameLabel);
-		toolBar2.add(hostNameTextField);
-		toolBar2.add(upButton);
-		toolBar2.add(optionComboBox);
-		toolBar2.add(startButton);
-		
-		JPanel pane = new JPanel(new BorderLayout());
-		pane.add(toolBar1,BorderLayout.NORTH);
-		pane.add(toolBar2, BorderLayout.SOUTH);
-		
-		add(pane,BorderLayout.NORTH);
-		
-		
-		//toolbar end
-		
-		//function
-		
 			
-		
-		
-		//function end
+			InetAddress localIP = InetAddress.getLocalHost();
+			myIP = localIP.getHostAddress();
+			fixedIP = myIP.substring(0,myIP.lastIndexOf(".")+1);
+			myHostName = localIP.getHostName();
+			
+			JLabel rangeStartLabel = new JLabel("IP Range:");
+			JTextField rangeStartTextField = new JTextField(fixedIP+"1");
+			JLabel rangeEndLabel = new JLabel("        to");
+			JTextField rangeEndTextField = new JTextField(fixedIP+"254");
+			
+			rangeStartLabel.setFont(font);
+			rangeStartLabel.setPreferredSize(new Dimension(90, 30));
+			rangeEndLabel.setFont(font);
+			rangeEndLabel.setPreferredSize(new Dimension(90, 30));
+			
+			toolBar1.add(rangeStartLabel);
+			toolBar1.add(rangeStartTextField);
+			toolBar1.add(rangeEndLabel);
+			toolBar1.add(rangeEndTextField);
+			
+			JLabel hostNameLabel = new JLabel("Hostname:");
+			JTextField hostNameTextField = new JTextField(myHostName);
+			JButton upButton = new JButton("IP ¡è");
+			JComboBox optionComboBox = new JComboBox();
+			optionComboBox.addItem("/24");
+			optionComboBox.addItem("/26");
+			
+			JButton startButton = new JButton("¢º Start");
+			
+			hostNameLabel.setFont(font);
+			hostNameTextField.setPreferredSize(new Dimension(90, 30));
+			upButton.setPreferredSize(new Dimension(50, 30));
+			optionComboBox.setPreferredSize(new Dimension(90, 30));
+			startButton.setPreferredSize(new Dimension(90, 30));
+			
+			toolBar2.add(hostNameLabel);
+			toolBar2.add(hostNameTextField);
+			toolBar2.add(upButton);
+			toolBar2.add(optionComboBox);
+			toolBar2.add(startButton);
+			
+			JPanel pane = new JPanel(new BorderLayout());
+			pane.add(toolBar1,BorderLayout.NORTH);
+			pane.add(toolBar2, BorderLayout.SOUTH);
+			
+			add(pane,BorderLayout.NORTH);
+			
+			
+			//toolbar end
+			
+			//function
+			
+			startButton.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					Pinging[] pg = new Pinging[254];
+
+					for (int i = 0; i <= 253; i++) {
+						pg[i] = new Pinging(fixedIP + (i + 1));
+						pg[i].start();
+					}
+					for (int i = 0; i <= 253; i++) {
+						Object[] msg = pg[i].getMsg();
+						status[i][0] = msg[0];
+						
+						if (msg[1] != null) {
+							status[i][1] = msg[1];
+						} else {
+							status[i][1] = "[n/s]";
+						}
+						if (msg[2] != null) {
+							status[i][2] = msg[2];
+						} else {
+							status[i][2] = "[n/s]";
+						}
+						if (msg[3] != null) {
+							status[i][3] = msg[3];
+						} else {
+							status[i][3] = "[n/s]";
+						}
+					}
+					table.repaint();
+
+				}
+			});
+
+				
+			
+			
+			//function end
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		
 		
@@ -260,11 +306,6 @@ public class OutLinePing extends JFrame {
 		setSize(700,700);
 		setLocationRelativeTo(null);
 		setVisible(true);
-		
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
 	}
 	
 	private Object[][] initTable() {
@@ -281,10 +322,7 @@ public class OutLinePing extends JFrame {
 		new OutLinePing();
 		
 		
-	}
-
-
-	
+	}	
 
 	
 }
