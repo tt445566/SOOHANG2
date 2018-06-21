@@ -1,15 +1,16 @@
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.beancontext.BeanContextMembershipEvent;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -201,9 +202,9 @@ public class OutLinePing extends JFrame {
 		JToolBar toolBar2 = new JToolBar();
 		toolBar2.setLayout(new FlowLayout(FlowLayout.LEFT));
 		
-		
 		try {
 			
+		
 			InetAddress localIP = InetAddress.getLocalHost();
 			myIP = localIP.getHostAddress();
 			fixedIP = myIP.substring(0,myIP.lastIndexOf(".")+1);
@@ -232,6 +233,9 @@ public class OutLinePing extends JFrame {
 			optionComboBox.addItem("/26");
 			
 			JButton startButton = new JButton("¢º Start");
+			JButton stopButton = new JButton("¡á Stop");
+			
+			stopButton.setVisible(false);
 			
 			hostNameLabel.setFont(font);
 			hostNameTextField.setPreferredSize(new Dimension(90, 30));
@@ -257,47 +261,101 @@ public class OutLinePing extends JFrame {
 			//function
 			
 			startButton.addActionListener(new ActionListener() {
-
+				
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					Pinging[] pg = new Pinging[254];
-
-					for (int i = 0; i <= 253; i++) {
-						pg[i] = new Pinging(fixedIP + (i + 1));
-						pg[i].start();
-					}
-					for (int i = 0; i <= 253; i++) {
-						Object[] msg = pg[i].getMsg();
-						status[i][0] = msg[0];
-						
-						if (msg[1] != null) {
-							status[i][1] = msg[1];
-						} else {
-							status[i][1] = "[n/s]";
-						}
-						if (msg[2] != null) {
-							status[i][2] = msg[2];
-						} else {
-							status[i][2] = "[n/s]";
-						}
-						if (msg[3] != null) {
-							status[i][3] = msg[3];
-						} else {
-							status[i][3] = "[n/s]";
-						}
-					}
-					table.repaint();
-
-				}
-			});
-
 				
+						
+						startButton.setVisible(false);
+						stopButton.setVisible(true);
+						
+						String myIp = null;
+						String myHostname = null;
+						String fixedIP = null;
+						int bt = 0;
+						bt++;
+						try {
+							InetAddress ia = InetAddress.getLocalHost();
+							myIp = ia.getHostAddress();
+							fixedIP = myIp.substring(0, myIp.lastIndexOf(".")+1);
+							myHostname = ia.getHostName();
+						} catch (Exception e1) {
+							e1.printStackTrace();
+						}
+						for(int i = 1; i < 255; i++) {
+							final int I = i;
+							
+							String ip = fixedIP + I;
+							readyLabel.setText(ip);
+							String msg[] = {null, null, null,null, null};
+							msg[0] = ip;
+							Thread thread = new Thread() {
+								@Override
+								public void run() {
+								
+									try {
+										Runtime run = Runtime.getRuntime();
+										Process p = run.exec("ping -a "+ip);
+
+										InputStream is = p.getInputStream();
+										BufferedReader br = new BufferedReader(new InputStreamReader(is));
+										String line = null;
+										while((line = br.readLine()) != null) {
+											if(line.indexOf("[") >= 0) {
+												Pattern pattern_hostname = Pattern.compile("(Ping)(\\s+)(.+)(\\s+)(\\[)");
+												Matcher matcher_hostname = pattern_hostname.matcher(line);
+												while(matcher_hostname.find())
+													table.setValueAt(matcher_hostname.group(3), I-1, 3);
+											} 
+											if(line.indexOf("ms") >= 0) {
+												Pattern pattern = Pattern.compile("(\\d+ms)(\\s+)(TTL=)(\\d+)");
+												Matcher matcher = pattern.matcher(line);
+												while(matcher.find()) {
+													msg[2] = matcher.group(1);
+													msg[3] = matcher.group(4);
+													table.setValueAt(msg[2], I-1, 1);
+													table.setValueAt(msg[3], I-1, 2);
+												}
+											break;
+											}
+										}
+										InetAddress address = InetAddress.getByName(ip);
+										boolean reachable = address.isReachable(200);
+										if(reachable) {
+												table.setValueAt(msg[0], I-1, 0);
+										}
+										else {
+											table.setValueAt(msg[0], I-1, 0);
+											table.setValueAt("[n/a]", I-1, 1);
+											table.setValueAt("[n/s]", I-1, 2);
+											table.setValueAt("[n/s]", I-1, 3);
+											table.setValueAt("[n/s]", I-1, 4);
+											
+										}
+										if(msg[4] == null)
+											{ 
+												table.setValueAt("[n/a]", I-1, 3);
+											}
+										br.close();
+										is.close();
+									}catch(Exception e) {
+												
+											}
+								
+								};
+							};
+							thread.start();
+						}
+						
+					
+					}
+				 
+				});
 			
 			
 			//function end
 		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("IP ¿À·ù");
 		}
 		
 		
@@ -322,7 +380,6 @@ public class OutLinePing extends JFrame {
 		new OutLinePing();
 		
 		
+		
 	}	
-
-	
 }
