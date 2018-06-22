@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -224,16 +225,19 @@ public class OutLinePing extends JFrame {
 			JTextField rangeStartTextField = new JTextField(fixedIP+"1");
 			JLabel rangeEndLabel = new JLabel("        to");
 			JTextField rangeEndTextField = new JTextField(fixedIP+"254");
+			JButton topnee = new JButton(new ImageIcon("D:\\새 폴더\\PingTester\\pictures\\topnee.png"));
 			
 			rangeStartLabel.setFont(font);
 			rangeStartLabel.setPreferredSize(new Dimension(90, 30));
 			rangeEndLabel.setFont(font);
 			rangeEndLabel.setPreferredSize(new Dimension(90, 30));
+
 			
 			toolBar1.add(rangeStartLabel);
 			toolBar1.add(rangeStartTextField);
 			toolBar1.add(rangeEndLabel);
 			toolBar1.add(rangeEndTextField);
+			toolBar1.add(topnee);
 			
 			JLabel hostNameLabel = new JLabel("Hostname:");
 			JTextField hostNameTextField = new JTextField(myHostName);
@@ -243,7 +247,9 @@ public class OutLinePing extends JFrame {
 			optionComboBox.addItem("/26");
 			
 			JButton startButton = new JButton("▶ Start");
-		
+	
+			JButton menuButton = new JButton(new ImageIcon("D:\\새 폴더\\PingTester\\pictures\\menu.png"));
+			
 			
 		
 			
@@ -258,6 +264,7 @@ public class OutLinePing extends JFrame {
 			toolBar2.add(upButton);
 			toolBar2.add(optionComboBox);
 			toolBar2.add(startButton);
+			toolBar2.add(menuButton);
 			
 			JPanel pane = new JPanel(new BorderLayout());
 			pane.add(toolBar1,BorderLayout.NORTH);
@@ -391,6 +398,7 @@ public class OutLinePing extends JFrame {
 						}
 						
 					startButton.setText("▶ Start");
+					readyLabel.setText("Ready");
 					}
 				 
 				});
