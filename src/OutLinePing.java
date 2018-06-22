@@ -8,7 +8,17 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +45,7 @@ public class OutLinePing extends JFrame {
 	
 	public OutLinePing() {
 		
-		
+		super("Angry IP Scanner");
 		
 		tableData = new Object[254][5];
 		
@@ -233,9 +243,9 @@ public class OutLinePing extends JFrame {
 			optionComboBox.addItem("/26");
 			
 			JButton startButton = new JButton("▶ Start");
-			JButton stopButton = new JButton("■ Stop");
+		
 			
-			stopButton.setVisible(false);
+		
 			
 			hostNameLabel.setFont(font);
 			hostNameTextField.setPreferredSize(new Dimension(90, 30));
@@ -266,26 +276,14 @@ public class OutLinePing extends JFrame {
 				public void actionPerformed(ActionEvent e) {
 				
 						
-						startButton.setVisible(false);
-						stopButton.setVisible(true);
+						startButton.setText("■ Stop");
+				
 						
-						String myIp = null;
-						String myHostname = null;
-						String fixedIP = null;
-						int bt = 0;
-						bt++;
-						try {
-							InetAddress ia = InetAddress.getLocalHost();
-							myIp = ia.getHostAddress();
-							fixedIP = myIp.substring(0, myIp.lastIndexOf(".")+1);
-							myHostname = ia.getHostName();
-						} catch (Exception e1) {
-							e1.printStackTrace();
-						}
+						
 						for(int i = 1; i < 255; i++) {
-							final int I = i;
+							final int j = i;
 							
-							String ip = fixedIP + I;
+							String ip = fixedIP + j;
 							readyLabel.setText(ip);
 							String msg[] = {null, null, null,null, null};
 							msg[0] = ip;
@@ -305,7 +303,7 @@ public class OutLinePing extends JFrame {
 												Pattern pattern_hostname = Pattern.compile("(Ping)(\\s+)(.+)(\\s+)(\\[)");
 												Matcher matcher_hostname = pattern_hostname.matcher(line);
 												while(matcher_hostname.find())
-													table.setValueAt(matcher_hostname.group(3), I-1, 3);
+													table.setValueAt(matcher_hostname.group(3), j-1, 3);
 											} 
 											if(line.indexOf("ms") >= 0) {
 												Pattern pattern = Pattern.compile("(\\d+ms)(\\s+)(TTL=)(\\d+)");
@@ -313,28 +311,73 @@ public class OutLinePing extends JFrame {
 												while(matcher.find()) {
 													msg[2] = matcher.group(1);
 													msg[3] = matcher.group(4);
-													table.setValueAt(msg[2], I-1, 1);
-													table.setValueAt(msg[3], I-1, 2);
+													table.setValueAt(msg[2], j-1, 1);
+													table.setValueAt(msg[3], j-1, 2);
 												}
 											break;
 											}
 										}
 										InetAddress address = InetAddress.getByName(ip);
 										boolean reachable = address.isReachable(200);
+										
 										if(reachable) {
-												table.setValueAt(msg[0], I-1, 0);
+											
+											final ExecutorService es = Executors.newFixedThreadPool(20);//20개의 풀, 스레드를 만들겠다는 이야기
+											final String ip = (String)msg[0];
+											final int timeout = 20;
+											final List<Future<ScanResult>> futures = new ArrayList<>();
+
+											for (int port = 1; port <= 1024; port++) {
+
+												futures.add(portlsOpen(es, ip, port, timeout));	
+											}
+											try {
+												es.awaitTermination(200L, TimeUnit.MILLISECONDS);
+											} catch (InterruptedException e1) {
+
+												e1.printStackTrace();
+											}
+											int openPorts = 0;
+											String openPortNumber = "";
+											for(final Future<ScanResult>f : futures) {
+												try {
+													
+													if(f.get().isOpen()) {
+														
+														openPorts++;
+														
+														if(msg[4]!=null)
+														openPortNumber += ","+f.get().getPort(); 
+														else
+															openPortNumber =""+ f.get().getPort();
+														msg[4] = openPortNumber;
+													}
+												} catch (InterruptedException e1) {
+
+													e1.printStackTrace();
+												} catch (ExecutionException e1) {
+
+													e1.printStackTrace();
+												}
+											}
+											
+
+												table.setValueAt(msg[4], j-1, 4);
+												table.setValueAt(msg[0], j-1, 0);
 										}
 										else {
-											table.setValueAt(msg[0], I-1, 0);
-											table.setValueAt("[n/a]", I-1, 1);
-											table.setValueAt("[n/s]", I-1, 2);
-											table.setValueAt("[n/s]", I-1, 3);
-											table.setValueAt("[n/s]", I-1, 4);
+											table.setValueAt(msg[0], j-1, 0);
+											table.setValueAt("[n/a]", j-1, 1);
+											table.setValueAt("[n/s]", j-1, 2);
+											table.setValueAt("[n/s]", j-1, 3);
+											table.setValueAt("[n/s]", j-1, 4);
 											
 										}
+										
+										
 										if(msg[4] == null)
 											{ 
-												table.setValueAt("[n/a]", I-1, 3);
+												table.setValueAt("[n/a]", j-1, 3);
 											}
 										br.close();
 										is.close();
@@ -347,7 +390,7 @@ public class OutLinePing extends JFrame {
 							thread.start();
 						}
 						
-					
+					startButton.setText("▶ Start");
 					}
 				 
 				});
@@ -373,7 +416,21 @@ public class OutLinePing extends JFrame {
 	}
 	
 	
-
+	public static Future<ScanResult>portlsOpen(final ExecutorService es, final String ip, final int port, final int timeout){
+		return es.submit(new Callable<ScanResult>() { //submit은 스레드의 start와 비슷하다
+			@Override
+			public ScanResult call() {
+				try {
+					Socket socket = new Socket(); //소켓 사용해서 서버와 연결
+					socket.connect(new InetSocketAddress(ip, port), timeout);
+					socket.close();
+					return new ScanResult(port, true);
+				}catch(Exception ex) {
+					return new ScanResult(port, false);
+				}//순차적으로 하면 시간이 너무 오래걸려서 스레드를 사용해야한다.
+			}
+		});
+	}
 	
 	
 	public static void main(String[] args) {
